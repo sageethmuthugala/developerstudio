@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevStudio | Pro Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            height: 100vh; 
+            overflow: hidden; 
+            background: #020617;
+            color: #94a3b8; 
+        }
+
+        #editor { font-family: 'Fira Code', monospace; resize: none; tab-size: 4; outline: none; }
+        
+        .glass { 
+            background: rgba(15, 23, 42, 0.7); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+
+        .project-card { transition: all 0.2s ease; }
+        .project-card:hover { transform: translateY(-2px); border-color: rgba(59, 130, 246, 0.4); background: rgba(30, 41, 59, 0.5); }
+        
+        .animate-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <!-- STARTUP DASHBOARD -->
+    <div id="projectModal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950">
+        <div class="glass w-full max-w-2xl rounded-[3rem] p-12 shadow-2xl animate-in text-center">
+            
+            <div class="mb-12">
+                <h1 class="text-5xl font-black text-white tracking-tighter mb-4 italic">DevStudio<span class="text-blue-500">.</span></h1>
+                <p class="text-slate-500 font-medium">Professional Single-File Web Environment</p>
+            </div>
+
+            <div class="max-w-md mx-auto space-y-4">
+                <div class="relative">
+                    <input type="text" id="projectNameInput" placeholder="Name your project..." 
+                           class="w-full p-5 bg-slate-900 border border-slate-800 rounded-2xl text-white text-center focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-600">
+                </div>
+                
+                <button onclick="initNew()" class="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-2xl font-black text-white transition-all shadow-xl shadow-blue-600/20 active:scale-95 uppercase tracking-widest text-sm">
+                    Create Blank Project
+                </button>
+            </div>
+
+            <div class="mt-16 text-left">
+                <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Your Library</h3>
+                    <span id="projectCount" class="text-[10px] bg-slate-800 px-3 py-1 rounded-full text-slate-400 font-bold">0</span>
+                </div>
+
+                <div id="projectList" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scroll">
+                    <!-- Projects -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP INTERFACE -->
+    <div id="mainApp" class="hidden flex flex-col h-full">
+        <header class="h-16 border-b border-white/5 flex justify-between items-center px-8 bg-slate-950/50">
+            <div class="flex items-center gap-6">
+                <button onclick="location.reload()" class="font-black text-xl text-white italic tracking-tighter">DS<span class="text-blue-500">.</span></button>
+                <div class="h-4 w-px bg-slate-800"></div>
+                <div class="flex items-center gap-3">
+                    <span id="activeTitle" class="text-xs font-bold text-slate-200 tracking-widest uppercase">Project</span>
+                    <button onclick="renameProject()" class="text-slate-600 hover:text-white transition">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-width="2.5"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex gap-4 items-center">
+                <button onclick="save()" class="text-[10px] font-black px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition">SAVE</button>
+                <button onclick="download()" class="text-[10px] font-black px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition">EXPORT</button>
+                
+                <div class="h-6 w-px bg-slate-800 mx-2"></div>
+                
+                <!-- Quick Delete/Exit Controls -->
+                <button onclick="deleteProject(activeProject, event, true)" class="p-2 text-slate-500 hover:text-red-500 transition-colors" title="Delete Project">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                </button>
+                <button onclick="location.reload()" class="p-2 text-slate-500 hover:text-white transition-colors" title="Exit to Menu">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <div class="flex-1 bg-[#010409]">
+                <textarea id="editor" spellcheck="false" class="w-full h-full bg-transparent p-12 text-blue-100/60 leading-relaxed overflow-auto outline-none"></textarea>
+            </div>
+            <div class="w-1/2 p-6 bg-slate-950">
+                <div class="h-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border-[12px] border-slate-900">
+                    <iframe id="viewer" class="w-full h-full border-none"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const viewer = document.getElementById('viewer').contentWindow.document;
+        let activeProject = "";
+        const DB_KEY = 'devstudio_v5_db';
+
+        function initNew() {
+            const name = document.getElementById('projectNameInput').value.trim();
+            if(!name) return;
+            loadWorkspace(name, `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <script src="https://cdn.tailwindcss.com"><\/script>\n</head>\n<body class="bg-white p-20">\n  <h1 class="text-6xl font-black text-slate-900 tracking-tighter">Hello World.</h1>\n  <p class="mt-4 text-slate-500">Edit this code to begin.</p>\n</body>\n</html>`);
+        }
+
+        function loadWorkspace(name, content) {
+            activeProject = name;
+            document.getElementById('activeTitle').innerText = name;
+            document.getElementById('projectModal').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            editor.value = content;
+            updatePreview();
+        }
+
+        function updatePreview() {
+            viewer.open();
+            viewer.write(editor.value);
+            viewer.close();
+        }
+
+        function save() {
+            const db = getDB();
+            db[activeProject] = editor.value;
+            saveDB(db);
+            renderList();
+            alert("Project Saved.");
+        }
+
+        function download() {
+            const blob = new Blob([editor.value], {type: 'text/html'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `index.html`;
+            a.click();
+        }
+
+        function deleteProject(name, e, returnToMenu = false) {
+            if(e) e.stopPropagation();
+            if(confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
+                const db = getDB();
+                delete db[name];
+                saveDB(db);
+                renderList();
+                if(returnToMenu) location.reload();
+            }
+        }
+
+        function getDB() { return JSON.parse(localStorage.getItem(DB_KEY) || '{}'); }
+        function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+        function renderList() {
+            const list = document.getElementById('projectList');
+            const db = getDB();
+            const keys = Object.keys(db);
+            
+            document.getElementById('projectCount').innerText = keys.length;
+            list.innerHTML = "";
+
+            if(keys.length === 0) {
+                list.innerHTML = `<div class="col-span-full text-center py-8 text-slate-600 text-xs italic">No saved projects</div>`;
+                return;
+            }
+
+            keys.forEach(name => {
+                const div = document.createElement('div');
+                div.className = "project-card p-4 bg-slate-900 border border-slate-800 rounded-2xl flex justify-between items-center cursor-pointer group";
+                div.onclick = () => loadWorkspace(name, db[name]);
+                div.innerHTML = `
+                    <span class="text-sm font-bold text-slate-300">${name}</span>
+                    <div class="flex gap-1">
+                        <button onclick="deleteProject('${name}', event)" class="p-2 text-slate-600 hover:text-red-500 transition-all" title="Delete Project">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function renameProject() {
+            const n = prompt("New project name:", activeProject);
+            if(n && n.trim()) {
+                const db = getDB();
+                db[n.trim()] = editor.value;
+                delete db[activeProject];
+                saveDB(db);
+                activeProject = n.trim();
+                document.getElementById('activeTitle').innerText = activeProject;
+                renderList();
+            }
+        }
+
+        editor.addEventListener('input', updatePreview);
+        window.onload = renderList;
+    </script>
+</body>
+</html>
